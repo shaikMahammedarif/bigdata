@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+     <p>
+ Hadoop Commands
+
+
+- `hadoop version`
+- `hadoop fs -ls /`
+- `hadoop fs -mkdir /user/hadoop/`
+- `hadoop fs -put sample.txt /user/data/`
+- `hadoop fs -get /user/data/sample.txt workspace/`
+- `hadoop fs -cat /user/data/sampletext.txt`
+- `hadoop fs -cp /user/hadoop/file1 /user/hadoop/file2`
+- `hadoop fs -appendToFile localfile /user/hadoop/hadoopfile`
+- `hadoop fs -df /user/hadoop/dir1`
+- `hadoop fs -help`
+- `hadoop fs -touchz /user/hadoop/newfile`
+- `hadoop fs -rmdir /user/hadoop/emptydir`
+- `hadoop fs -mv /user/hadoop/file1 /user/hadoop/file2`
+
+
+----------------------------------------------------------------------------------------------------------------------------
+
+Word Count
+
+
+import java.io.IOException;
+import java.util.StringTokenizer;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class WordCount {
+
+    public static class TokenizerMapper extends Mapper<Object, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private Text word = new Text();
+
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+            StringTokenizer itr = new StringTokenizer(value.toString());
+            while (itr.hasMoreTokens()) {
+                word.set(itr.nextToken());
+                context.write(word, one);
+            }
+        }
+    }
+
+    public static class IntSumReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        private IntWritable result = new IntWritable();
+
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) {
+                sum += val.get();
+            }
+            result.set(sum);
+            context.write(key, result);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "word count");
+        job.setJarByClass(WordCount.class);
+        job.setMapperClass(TokenizerMapper.class);
+        job.setCombinerClass(IntSumReducer.class);
+        job.setReducerClass(IntSumReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+
+
+commands
+hadoop fs -mkdir inputFile
+cd Desktop
+hadoop fs -put input.txt /inputFile
+hadoop jar myjar.jar WordCount /inputFile /outputFile
+hadoop fs -cat /outputFile/part-r-00000
+
+-----------------------------------------------------------------------------------------------------------------------------
+pig
+5prog:
+
+Steps
+1. Set Up and Load Data
+Open Terminal and Start Pig:
+        pig
+Load Data into Pig:
+Assuming gprec.txt contains data in the following format:
+Copy code
+1,BranchA,100
+2,BranchB,200
+3,BranchC,150
+Load the data:
+        gprec_data = LOAD 'gprec.txt' USING PigStorage(',') AS  (branchid:int, branch:chararray, strength:int);
+Verify Data Load:
+        DUMP gprec_data;
+Describe Operator
+Describe the Schema:
+        DESCRIBE gprec_data;
+Expected Output:
+        gprec_data: {branchid: int, branch: chararray, strength: int}
+Foreach Operator
+Generate Specified Columns:
+        foreach_opr = FOREACH gprec_data GENERATE branch, strength;
+Dump the Result:
+        DUMP foreach_opr;
+Expected Output:
+Copy code
+(BranchA,100)
+(BranchB,200)
+(BranchC,150)
+
+Transform Column Data:
+        foreach_opr2 = FOREACH gprec_data GENERATE LOWER(branch);
+Dump the Transformed Data:
+        DUMP foreach_opr2;
+Expected Output:
+scss
+Copy code
+(brancha)
+(branchb)
+(branchc)
+Order By Operator
+Order Data by Strength in Descending Order:
+        orderby_opr = ORDER gprec_data BY strength DESC;
+Dump the Ordered Data:
+        DUMP orderby_opr;
+Expected Output:
+scss
+Copy code
+(2,BranchB,200)
+(3,BranchC,150)
+(1,BranchA,100)
+
+Summary of Pig Latin Script
+-- Load data
+gprec_data = LOAD 'gprec.txt' USING PigStorage(',') AS (branchid:int, branch:chararray, strength:int);
+
+-- Verify data load
+        DUMP gprec_data;
+
+-- Describe the schema
+        DESCRIBE gprec_data;
+
+-- Generate specified columns
+        foreach_opr = FOREACH gprec_data GENERATE branch, strength;
+DUMP foreach_opr;
+
+-- Transform column data
+        foreach_opr2 = FOREACH gprec_data GENERATE LOWER(branch);
+DUMP foreach_opr2;
+
+-- Order data by strength in descending order
+        orderby_opr = ORDER gprec_data BY strength DESC;
+        DUMP orderby_opr;
+Running the Scripts
+Start Pig from the terminal:
+        pig
+Execute the Pig Latin commands by typing them or running a script file containing the above commands.
+
+By following these steps, you will successfully use the DESCRIBE, FOREACH, and ORDER BY operators in Pig to load data, view its schema, transform it, and sort it accordingly.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pig 6
+union operation
+gprec_data1 = LOAD 'gprec.txt' USING PigStorage(',') AS (branchid:int, branch:chararray, strength:int);
+gprec_data = LOAD 'gprec.txt' USING PigStorage(',') AS (branchid:int, branch:chararray, strength:int);
+
+gprec_data2 = UNION gprec_data1,gprec_data;
+
+DUMP gprec_data2;
+
+join operation 
+gg = JOIN gprec_data BY id,gprec_data1 BY id;
+
+DUMP gg
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Hive DDL
+CREATE DATABASE mydatabase;
+
+CREATE TABLE mytable (
+    id INT,
+    name STRING,
+    age INT
+);
+
+ALTER TABLE mytable ADD COLUMN email STRING;
+                    rename to my1;
+DROP TABLE mytable;
+
+DROP DATABASE mydatabase;
+
+
+
+DML
+LOAD DATA INPATH '/user/hive/data' INTO TABLE mytable;
+
+INSERT INTO mytable VALUES (1, 'John', 30, 'john@example.com');
+
+SELECT * FROM mytable;
+
+UPDATE mytable SET age = 31 WHERE id = 1;
+
+DELETE FROM mytable WHERE id = 1;
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+</p>
+  </body>
+</html>
